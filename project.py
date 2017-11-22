@@ -44,63 +44,30 @@ def make_yaml_dict(test_scene_num, arm_name, object_name, pick_pose, place_pose)
 
 # Helper function to output to yaml file
 def send_to_yaml(yaml_filename, dict_list):
-    '''
-    :param yaml_filename:
-    :param dict_list:
-    :return:
-    '''
     data_dict = {"object_list": dict_list}
     with open(yaml_filename, 'w') as outfile:
         yaml.dump(data_dict, outfile, default_flow_style=False)
 
 
-def do_statistical_outlier_filtering(pcl_data,mean_k,tresh):
-    '''
-    :param pcl_data: point could data subscriber
-    :param mean_k:  number of neighboring points to analyze for any given point
-    :param tresh:   Any point with a mean distance larger than global will be considered outlier
-    :return: Statistical outlier filtered point cloud data
-    '''
+def statistical_outlier_filtering(pcl_data,mean_k,tresh):
     outlier_filter = pcl_data.make_statistical_outlier_filter()
     outlier_filter.set_mean_k(mean_k)
     outlier_filter.set_std_dev_mul_thresh(tresh)
     return outlier_filter.filter()
 
 
-def do_voxel_grid_downssampling(pcl_data,leaf_size):
-    '''
-    Create a VoxelGrid filter object for a input point cloud
-    :param pcl_data: point cloud data subscriber
-    :param leaf_size: voxel(or leaf) size
-    :return: Voxel grid downsampling on point cloud
-    '''
+def voxel_grid_downssampling(pcl_data,leaf_size):
     vox = pcl_data.make_voxel_grid_filter()
     vox.set_leaf_size(leaf_size, leaf_size, leaf_size)
     return  vox.filter()
 
-def do_passthrough(pcl_data,filter_axis,axis_min,axis_max):
-    '''
-    Create a PassThrough  object and assigns a filter axis and range.
-    :param pcl_data: point could data subscriber
-    :param filter_axis: filter axis
-    :param axis_min: Minimum  axis to the passthrough filter object
-    :param axis_max: Maximum axis to the passthrough filter object
-    :return: passthrough on point cloud
-    '''
+def passthrough(pcl_data,filter_axis,axis_min,axis_max):
     passthrough = pcl_data.make_passthrough_filter()
     passthrough.set_filter_field_name(filter_axis)
     passthrough.set_filter_limits(axis_min, axis_max)
     return passthrough.filter()
 
-def do_ransac_plane_segmentation(pcl_data,pcl_sac_model_plane,pcl_sac_ransac,max_distance):
-    '''
-    Create the segmentation object
-    :param pcl_data: point could data subscriber
-    :param pcl_sac_model_plane: use to determine plane models
-    :param pcl_sac_ransac: RANdom SAmple Consensus
-    :param max_distance: Max distance for a point to be considered fitting the model
-    :return: segmentation object
-    '''
+def ransac_plane_segmentation(pcl_data,pcl_sac_model_plane,pcl_sac_ransac,max_distance):
     seg = pcl_data.make_segmenter()
     seg.set_model_type(pcl_sac_model_plane)
     seg.set_method_type(pcl_sac_ransac)
@@ -108,22 +75,13 @@ def do_ransac_plane_segmentation(pcl_data,pcl_sac_model_plane,pcl_sac_ransac,max
     return seg
 
 def  extract_cloud_objects_and_cloud_table(pcl_data,ransac_segmentation):
-    '''
-    :param pcl_data:
-    :param ransac_segmentation:
-    :return: cloud table and cloud object
-    '''
     inliers, coefficients = ransac_segmentation.segment()
     cloud_table = pcl_data.extract(inliers, negative=False)
     cloud_objects = pcl_data.extract(inliers, negative=True)
     return cloud_table,cloud_objects
 
 
-def do_euclidean_clustering(white_cloud):
-    '''
-    :param cloud_objects:
-    :return:
-    '''
+def euclidean_clustering(white_cloud):
     tree = white_cloud.make_kdtree()
 
     # Create Cluster-Mask Point Cloud to visualize each cluster separately
@@ -158,26 +116,26 @@ def pcl_callback(pcl_msg):
     cloud = ros_to_pcl(pcl_msg)
 
     #  Statistical Outlier Filtering
-    cloud = do_statistical_outlier_filtering(cloud,10,0.001)
+    cloud = statistical_outlier_filtering(cloud,10,0.001)
 
     #  Voxel Grid Downsampling
     LEAF_SIZE = 0.01
-    cloud = do_voxel_grid_downssampling(cloud,LEAF_SIZE)
+    cloud = voxel_grid_downssampling(cloud,LEAF_SIZE)
 
     #  PassThrough Filter
     filter_axis ='z'
     axis_min = 0.50
     axis_max =0.90
-    cloud = do_passthrough(cloud,filter_axis,axis_min,axis_max)
+    cloud = passthrough(cloud,filter_axis,axis_min,axis_max)
 
     filter_axis = 'x'
     axis_min = 0.30
     axis_max = 1.0
-    cloud = do_passthrough(cloud, filter_axis, axis_min, axis_max)
+    cloud = passthrough(cloud, filter_axis, axis_min, axis_max)
 
 
     #  RANSAC Plane Segmentation
-    ransac_segmentation = do_ransac_plane_segmentation(cloud,pcl.SACMODEL_PLANE,pcl.SAC_RANSAC,0.01)
+    ransac_segmentation = ransac_plane_segmentation(cloud,pcl.SACMODEL_PLANE,pcl.SAC_RANSAC,0.01)
 
 
     #  Extract inliers and outliers
@@ -185,7 +143,7 @@ def pcl_callback(pcl_msg):
 
     #  Euclidean Clustering
     white_cloud= XYZRGB_to_XYZ(cloud_objects)
-    cluster_cloud,cluster_indices = do_euclidean_clustering(white_cloud)
+    cluster_cloud,cluster_indices = euclidean_clustering(white_cloud)
 
 
     #  Convert PCL data to ROS messages
@@ -226,10 +184,10 @@ def pcl_callback(pcl_msg):
         object_markers_pub.publish(make_label(label, label_pos, index))
 
         # Add the detected object to the list of detected objects.
-        do = DetectedObject()
-        do.label = label
-        do.cloud = ros_cluster
-        detected_objects.append(do)
+        detect = DetectedObject()
+        detect.label = label
+        detect.cloud = ros_cluster
+        detected_objects.append(detect)
 
     rospy.loginfo('Detected {} objects: {}'.format(len(detected_objects_labels), detected_objects_labels))
 
@@ -282,9 +240,9 @@ def pr2_mover(object_list):
         #  Get the PointCloud for a given object and obtain it's centroid
         # Use tuples for input
         points_arr = ros_to_pcl(pick_object.cloud).to_array()
-        centroids = []
-        centroid = np.mean(points_arr, axis=0)[:3]
-        centroids.append(centroid)
+        CoMs = []
+        CoM = np.mean(points_arr, axis=0)[:3]
+        CoMs.append(CoM)
 
         #  Create 'place_pose' for the object
         test_scene_num = Int32()
@@ -302,9 +260,9 @@ def pr2_mover(object_list):
         which_arm.data = str(arm)
 
         pick_pose = Pose()
-        pick_pose.position.x = float(centroid[0])
-        pick_pose.position.y = float(centroid[1])
-        pick_pose.position.z = float(centroid[2])
+        pick_pose.position.x = float(CoM[0])
+        pick_pose.position.y = float(CoM[1])
+        pick_pose.position.z = float(CoM[2])
 
         place_pose = Pose()
         place_pose.position.x = float(dropbox_map[group][1][0])
