@@ -2,8 +2,8 @@
 
 ___
 
-##### Scholar: Christopher Ohara
-##### Program: Udacity Robotics Nanodegree
+#### Researcher: Christopher Ohara
+#### Program: Udacity Robotics Nanodegree
 ___
 [//]: # (Image References)
 
@@ -122,7 +122,7 @@ Make sure that you change the `test.world` value in order to have the correct it
 
 ##### Histogram Data Analysis:
 
-This time, the results were much better. Since trial-and-error was taking too long from initialization to the histogram plot, the Slack channel was consulted in order to find suitable `leaf size, axes intercepts, k-values and cluster size.` However, there was no consensus in what the best choices were, and different students could get excellent results with very different setups. These parameters are implemented in the `pcl_callback()` but are the most noticeable here, as human perception is not good at distinguishing small visual differences. A small change in one parameter can have drastic impacts on the result of the program. The following values results in the results in the images:
+This time, the results were much better. Since trial-and-error was taking too long from initialization to the histogram plot, the Slack channel was consulted in order to find suitable `leaf size, axes intercepts, k-values and cluster size.` However, there was no consensus on what the best choices were, and different students could get excellent results with very different setups. These parameters are implemented in the `pcl_callback()` but are the most noticeable here, as human perception is not good at distinguishing small visual differences. A small change in one parameter can have drastic impacts on the result of the program. The following values result in the displayed in images:
 
 parameter | values
 ----|-----
@@ -165,9 +165,9 @@ Many times, Rviz or Gazebo would randomly crash or give the response that it was
 
 Other times, `export GAZEBO_MODEL_PATH=~/catkin_ws/src/sensor_stick/models` would need to be called again, even though nothing had been changed since it's last recall. Similarly, `catkin_make` would need to be re-initialized, even though nothing had been added or removed to the files (not even a change in a .py file).
 
-(Pick-n-place operation) the robot can often grab items, but with little respect to the surronding environment. That means, it might plow through some items (it does not always come from above), flinging biscuits off the table so it can get a beer. Another issues, is sometimes it gets the item to the bin, but does not release until it has began its next process, which results in dropping the item on the floor on the way back to another item.
+(Pick-n-place operation) the robot can often grab items, but with little respect to the surrounding environment. That means, it might plow through some items (it does not always come from above), flinging biscuits off the table so it can get a beer. Another issue, is sometimes it gets the item to the bin, but does not release until it has begun its next process, which results in dropping the item on the floor on the way back to another item.
 
-Sometimes the robot would get confused, if the `for loop` was not properly implemented. Basically, it would repeated attempt to identify objects or think every object was a beer (see below).
+Sometimes the robot would get confused if the `for loop` was not properly implemented. Basically, it would repeatedly attempt to identify objects or think every object was a beer (see below).
 
 ![alt text][image15]
 
